@@ -72,7 +72,6 @@ object SparkOnHbase {
 
     val hbaseRDD = hbaseContext.hbaseRDD(TableName.valueOf(hbaseTableName),scan)
     val rdd =hbaseRDD.take(100)
-    hbaseContext.bulk
 
 
     var messageList = List[String]()
