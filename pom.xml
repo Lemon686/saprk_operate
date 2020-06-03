@@ -5,8 +5,195 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>yi.liu</groupId>
-    <artifactId>saprk_operate</artifactId>
+    <artifactId>spark_operate</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <spark.version>2.2.1</spark.version>
+        <hadoop.version>2.6.0-cdh5.8.0</hadoop.version>
+        <hbase.version>1.2.0-cdh5.8.0</hbase.version>
+        <scala.version>2.11.8</scala.version>
+        <scala.binary.version>2.11</scala.binary.version>
+        <java.version>1.8</java.version>
+
+        <!--遇到spark集群中已包含的其他组件的包，只需要编译使用，发布时不使用(线上环境中已有)-->
+        <scope.spark.lib>provided</scope.spark.lib>
+
+    </properties>
+
+
+    <dependencies>
+
+        <!--scala必备-->
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+
+        <!--spark程序所需依赖-->
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+
+        <!--spark sql 操作-->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-hive_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>${scope.spark.lib}</scope>
+            <!-- 如果存在编译需要而发布不需要的jar包，可以用scope标签，值设为provided。 -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>${scope.spark.lib}</scope>
+            <!-- 如果存在编译需要而发布不需要的jar包，可以用scope标签，值设为provided。 -->
+        </dependency>
+
+
+        <!--SparkOnHbase-->
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-spark</artifactId>
+            <version>1.2.0-cdh5.8.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11-1.5.2.logging</artifactId>
+            <version>1.5.2</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <version>${hbase.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-server</artifactId>
+            <version>${hbase.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-common</artifactId>
+            <version>${hbase.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+
+        <!--Streaming-->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>${scope.spark.lib}</scope>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+    <plugins>
+        <!-- 编译scala 工程必须要的插件 -->
+        <plugin>
+            <groupId>org.scala-tools</groupId>
+            <artifactId>maven-scala-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>compile</id>
+                    <goals>
+                        <goal>compile</goal>
+                    </goals>
+                    <phase>compile</phase>
+                </execution>
+                <execution>
+                    <id>test-compile</id>
+                    <goals>
+                        <goal>testCompile</goal>
+                    </goals>
+                    <phase>test-compile</phase>
+                </execution>
+                <execution>
+                    <phase>process-resources</phase>
+                    <goals>
+                        <goal>compile</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+
+        <!--构建JDK-->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.6.1</version>
+            <configuration>
+                <encoding>UTF-8</encoding>
+                <source>1.8</source>  <!-- 源代码使用jdk1.8支持的特性 -->
+                <target>1.8</target>  <!-- 使用jvm1.8编译目标代码 -->
+            </configuration>
+        </plugin>
+
+        <!-- 增加这个后，当maven编译时，会把全部jar包打到一个完整的jar包里面  -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.4</version>
+
+            <executions>
+                <execution>
+                    <id>make-assembly</id>
+                    <!-- this is used for inheritance merges -->
+                    <!-- 绑定到package生命周期阶段上 -->
+                    <phase>package</phase>
+                    <!-- 指定在打包节点执行jar包合并操作 -->
+                    <goals>
+                        <goal>single</goal>
+                    </goals>
+
+                    <configuration>
+
+                        <!--这里要替换成jar包main方法所在类
+                        <archive>
+                            <manifest>
+                            <mainClass>com.ultrapower.App</mainClass>
+                            </manifest>
+                        </archive>
+                            -->
+                        <!-- 最简单的，，，把全部jar包大成一个包
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                        -->
+                        <descriptors>
+                            <descriptor>src/main/assembly/assembly.xml</descriptor>
+                        </descriptors>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+
+    </plugins>
+    </build>
     
 </project>
